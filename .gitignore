@@ -1,0 +1,11 @@
+# artefatos de compilação do Maven e Java
+target/
+load-tester/target/
+*.class
+*.jar
+*.war
+*.log
+
+# arquivos de sistema operacional
+.DS_Store
+Thumbs.db
