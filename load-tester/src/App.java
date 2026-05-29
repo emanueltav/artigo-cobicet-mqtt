@@ -11,12 +11,15 @@ public class App {
         int messagesToSend = 10000;
 
         try (MqttClient client = new MqttClient(broker, clientId, new MemoryPersistence())) {
+            
             MqttConnectOptions connOpts = new MqttConnectOptions();
             connOpts.setCleanSession(true);
+            connOpts.setUserName("admin");
+            connOpts.setPassword("admin123".toCharArray());
             
-            System.out.println("Conectando ao broker: " + broker);
+            System.out.println("Conectando ao broker de forma segura: " + broker);
             client.connect(connOpts);
-            System.out.println("Conectado! Iniciando teste de carga...");
+            System.out.println("Autenticado com sucesso! Iniciando injeção de carga...");
 
             long startTime = System.currentTimeMillis();
 
