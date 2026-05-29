@@ -7,8 +7,10 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 public class App {
     public static void main(String[] args) {
         String broker = "tcp://localhost:1883";
-        String clientId = "InjetorDeCargaJava";
+        String clientId = "InjetorDeCargaQoS";
         int messagesToSend = 10000;
+        
+        int[] qosLevels = {0, 1, 2};
 
         try (MqttClient client = new MqttClient(broker, clientId, new MemoryPersistence())) {
             
@@ -17,30 +19,38 @@ public class App {
             connOpts.setUserName("admin");
             connOpts.setPassword("admin123".toCharArray());
             
+            connOpts.setMaxInflight(messagesToSend);
+            
             System.out.println("Conectando ao broker de forma segura: " + broker);
             client.connect(connOpts);
-            System.out.println("Autenticado com sucesso! Iniciando injeção de carga...");
+            System.out.println("Autenticado! Iniciando bateria de testes de estresse (QoS 0, 1 e 2)...\n");
 
-            long startTime = System.currentTimeMillis();
+            for (int qos : qosLevels) {
+                System.out.println(">>> Iniciando injeção de " + messagesToSend + " mensagens com QoS " + qos + " <<<");
+                
+                long startTime = System.currentTimeMillis();
 
-            for (int i = 1; i <= messagesToSend; i++) {
-                String content = "{\"id_sensor\": 1, \"leitura\": " + i + "}";
-                MqttMessage message = new MqttMessage(content.getBytes());
-                message.setQos(0); 
-                client.publish("telemetria/dados", message);
+                for (int i = 1; i <= messagesToSend; i++) {
+                    String content = "{\"id_sensor\": 1, \"leitura\": " + i + "}";
+                    MqttMessage message = new MqttMessage(content.getBytes());
+                    message.setQos(qos);
+                    client.publish("telemetria/dados", message);
+                }
+
+                long endTime = System.currentTimeMillis();
+                long totalTime = endTime - startTime;
+
+                System.out.println("[RESULTADO] QoS " + qos + " concluído em: " + totalTime + " ms\n");
+                
+                Thread.sleep(2000); 
             }
 
-            long endTime = System.currentTimeMillis();
-            long totalTime = endTime - startTime;
-
-            System.out.println("Teste concluído com sucesso!");
-            System.out.println("Mensagens enviadas: " + messagesToSend);
-            System.out.println("Tempo total de execução: " + totalTime + " ms");
-            
+            System.out.println("Bateria de testes finalizada com sucesso!");
             client.disconnect();
-        } catch (MqttException me) {
-            System.err.println("Erro na comunicação MQTT: " + me.getMessage());
-            me.printStackTrace();
+
+        } catch (MqttException | InterruptedException e) {
+            System.err.println("Erro na execução dos testes: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }
